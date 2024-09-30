@@ -23,7 +23,6 @@ rc_fonts = {
 }
 matplotlib.rcParams.update(rc_fonts)
 
-
 """
 First, we determine refractive index of medium
 """
@@ -34,6 +33,27 @@ n_w = 1.328 # water
 Lamda = 814 #wavelength
 mthicc = 45 #metal THICCness
 
+def buildInterfaceMatrix(n1, n2, theta_i):
+    """
+    Function that builds Transmission matricies
+    """
+    theta_t = ((n1*np.sin(theta_i))/n2)
+    m = np.array([
+        [(n1+(n2*(np.cos(theta_i)/np.cos(theta_t)))), (n1-(n2*(np.cos(theta_i)/np.cos(theta_t))))],
+        [(n1-(n2*(np.cos(theta_i)/np.cos(theta_t)))), (n1+(n2*(np.cos(theta_i)/np.cos(theta_t))))]])
+    m = (m*(1/(2*n2)))
+    return m
+
+def buildPropagationMatrix(n1, d1, theta_i, w)
+    """
+    Function that builds the propagation matrix for losses while the field is moving through a medium
+    n1 = material index
+    d1 = thiccness of the copy=
+    theta_i = angle while entering the medium
+    w = angular frequency of light
+    """
+
+'''
 def alphaAndBeta(theta_i):
     """
     Function that returns alpha and beta (as a function of the angle of incidence)
@@ -61,13 +81,13 @@ def reflectanceAndTransmittance(theta_i):
     reflectance = (((alpha-beta)/(alpha+beta))**2)
     transmittance = (alpha*beta*((2/(alpha+beta))**2))
     return reflectance, transmittance
-
+'''
 # Creates array of theta_i axis values
 theta_range = np.radians(np.linspace(0, 100, 100))
-
+'''
 #create an array of transmission & reflection coefficient values for each theta_i in theta_range
 reflectionCoefficient = np.array([reflectionAndTransmissionCoefficient(theta)[0] for theta in theta_range])
-transmissionCoefficient = np.array([reflectionAndTransmissionCoefficient(theta)[0] for theta in theta_range])
+transmissionCoefficient = np.array([reflectionAndTransmissionCoefficient(theta)[1] for theta in theta_range])
 
 #Create an array of transmittance & reflectance values for each theta_i in theta range
 reflectance = np.array([reflectanceAndTransmittance(theta)[0] for theta in theta_range])
@@ -81,10 +101,29 @@ theta_brewster = np.degrees(np.arctan(n_m/n_g))
 ticks_x = np.setdiff1d(np.append(np.arange(0, 90, 10),
                        np.round([theta_brewster], 3)), [50, 60])
 ticks_y = np.arange(-0.4, 1, 0.2)
+'''
+#create interface matricies
+m12 = np.array([buildInterfaceMatrix(n_g, n_m, theta) for theta in theta_range])
+print(m12[0].shape)
+# Display the matrix
+fig, ax = plt.subplots()
+cax = ax.matshow(m12[0], cmap='viridis')
 
+# Add color bar
+fig.colorbar(cax)
+
+# Annotate each cell with the numeric value
+for (i, j), val in np.ndenumerate(m12[0]):
+    ax.text(j, i, f'{val}', ha='center', va='center', color='white')
+plt.show()
 '''
 Plot of Reflection and Transmission Coefficients
 '''
+
+
+"""
+
+
 figure, (graph_1, graph_2) = plt.subplots(1, 2, figsize=(12, 6))
 graph_1.plot(np.degrees(theta_range), reflectionCoefficient,
              label=r'Reflection Coefficient $\frac{E_{0_R}}{E_{0_I}}$', linewidth=2, color='blue')
@@ -142,6 +181,9 @@ plt.subplots_adjust(left=0.1,
                     wspace=0.2,
                     hspace=0.1)
 
-plt.show()
+#plt.show()
 # Save plot to png file.
 figure.savefig("fresnel_equation_plot_python.png", bbox_inches='tight')
+
+
+"""
