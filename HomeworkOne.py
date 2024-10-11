@@ -44,7 +44,7 @@ def buildInterfaceMatrix(n1, n2, theta_i):
     m = (m*(1/(2*n2)))
     return m
 
-def buildPropagationMatrix(n1, d1, theta_i, w)
+def buildPropagationMatrix(n1, d1, theta_i, w):
     """
     Function that builds the propagation matrix for losses while the field is moving through a medium
     n1 = material index
