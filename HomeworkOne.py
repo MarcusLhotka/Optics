@@ -27,22 +27,77 @@ matplotlib.rcParams.update(rc_fonts)
 First, we determine refractive index of medium
 """
 n_g = 1.711 #Glass
-n_m = 0.185 #complex(0.185, 5.11) #metla
+n_m = complex(0.185, 5.11) #metla 0.185
 #print (str(n_m))
 n_w = 1.328 # water
-Lamda = 814 #wavelength
-mthicc = 45 #metal THICCness
+Lamda = 814e-9 #wavelength
+mthicc = 45e-9 #metal THICCness
+c = 299792458  # meters per second
+omega = 2*np.pi*(c/Lamda)
 
-def buildInterfaceMatrix(n1, n2, theta_i):
-    """
-    Function that builds Transmission matricies
-    """
-    theta_t = ((n1*np.sin(theta_i))/n2)
-    m = np.array([
-        [(n1+(n2*(np.cos(theta_i)/np.cos(theta_t)))), (n1-(n2*(np.cos(theta_i)/np.cos(theta_t))))],
-        [(n1-(n2*(np.cos(theta_i)/np.cos(theta_t)))), (n1+(n2*(np.cos(theta_i)/np.cos(theta_t))))]])
-    m = (m*(1/(2*n2)))
-    return m
+def reflectCoeff_p(n1, n2, theta_i):
+    sin_theta_t = (n1 * np.sin(theta_i)) / n2
+    cosThetaI = np.cos(theta_i)
+    cosThetaT = np.sqrt(1 - sin_theta_t**2)
+    if sin_theta_t > 1:
+        cosThetaT = 1j * np.sqrt(sin_theta_t**2 - 1)
+    r = ((n2*cosThetaI-n1*cosThetaT)/(n1*cosThetaT+n2*cosThetaI))
+    return r
+
+def transCoeff_p(n1, n2, theta_i):
+    sin_theta_t = (n1 * np.sin(theta_i)) / n2
+    cosThetaI = np.cos(theta_i)
+    cosThetaT = np.sqrt(1 - sin_theta_t**2)
+    if sin_theta_t > 1:
+        cosThetaT = 1j * np.sqrt(sin_theta_t**2 - 1)
+    t = ((2*n1*cosThetaI)/(n1*cosThetaT+n2*cosThetaI))
+    return t
+
+def reflectCoeff_s(n1, n2, theta_i):
+    sin_theta_t = (n1 * np.sin(theta_i)) / n2
+    cosThetaI = np.cos(theta_i)
+    cosThetaT = np.sqrt(1 - sin_theta_t**2)
+    if sin_theta_t > 1:
+        cosThetaT = 1j * np.sqrt(sin_theta_t**2 - 1)
+    r = ((n1*cosThetaI-n2*cosThetaT)/(n1*cosThetaI+n2*cosThetaT))
+    return r
+
+def transCoeff_s(n1, n2, theta_i):
+    sin_theta_t = (n1 * np.sin(theta_i)) / n2
+    cosThetaI = np.cos(theta_i)
+    cosThetaT = np.sqrt(1 - sin_theta_t**2)
+    if sin_theta_t > 1:
+        cosThetaT = 1j * np.sqrt(sin_theta_t**2 - 1)
+    t = ((2*n1*cosThetaI)/(n1*cosThetaI+n2*cosThetaT))
+    return t
+
+def buildInterfaceMatrix_p (n1, n2, theta_i):
+    sin_theta_t = (n1 * np.sin(theta_i)) / n2
+    theta_t = np.arcsin(sin_theta_t)
+    cosThetaI = np.cos(theta_i)
+    cosThetaT = np.cos(theta_t)
+    r12 = reflectCoeff_p(n1, n2, theta_i)
+    r21 = reflectCoeff_p(n2, n1, theta_t)
+    t12 = transCoeff_p(n1, n2, theta_i)
+    t21 = transCoeff_p(n2, n1, theta_t)
+    m= 1/t21*np.array([
+        [(t12*t21-r12*r21), r21],
+        [(-r12), 1]], dtype=complex)
+    return m, theta_t
+
+def buildInterfaceMatrix_s (n1, n2, theta_i):
+    sin_theta_t = (n1 * np.sin(theta_i)) / n2
+    theta_t = np.arcsin(sin_theta_t)
+    cosThetaI = np.cos(theta_i)
+    cosThetaT = np.cos(theta_t)
+    r12 = reflectCoeff_s(n1, n2, theta_i)
+    r21 = reflectCoeff_s(n2, n1, theta_t)
+    t12 = transCoeff_s(n1, n2, theta_i)
+    t21 = transCoeff_s(n2, n1, theta_t)
+    m= ((1/t21)*np.array([
+        [(t12*t21-r12*r21), r21],
+        [(-r12), 1]], dtype=complex))
+    return m, theta_t
 
 def buildPropagationMatrix(n1, d1, theta_i, w):
     """
@@ -52,138 +107,44 @@ def buildPropagationMatrix(n1, d1, theta_i, w):
     theta_i = angle while entering the medium
     w = angular frequency of light
     """
+    phi = (n1*(w/c)*d1*np.cos(theta_i))
+    p = np.array([
+        [(np.e**(complex(0,phi))), 0],
+        [0, (np.e**(complex(0,-phi)))]], dtype=complex)
+    return p
 
-'''
-def alphaAndBeta(theta_i):
-    """
-    Function that returns alpha and beta (as a function of the angle of incidence)
-    """
-    alpha = ((np.sqrt(1-((n_g/n_m)*np.sin(theta_i))**2))/(np.cos(theta_i)))
-    beta = n_m/n_g
-    return alpha, beta
-
-def reflectionAndTransmissionCoefficient(theta_i):
-    """
-    Function returns reflection and transmission coefficients
-    """
-    alpha = alphaAndBeta(theta_i)[0]
-    beta = alphaAndBeta(theta_i)[1]
-    reflectionCoefficient = ((alpha-beta)/(alpha+beta))
-    transmissionCoefficient = (2/(alpha+beta))
-    return reflectionCoefficient, transmissionCoefficient
-
-def reflectanceAndTransmittance(theta_i):
-    """
-    Function returns transmittance and reflectance of the system
-    """
-    alpha = alphaAndBeta(theta_i)[0]
-    beta = alphaAndBeta(theta_i)[1]
-    reflectance = (((alpha-beta)/(alpha+beta))**2)
-    transmittance = (alpha*beta*((2/(alpha+beta))**2))
-    return reflectance, transmittance
-'''
 # Creates array of theta_i axis values
-theta_range = np.radians(np.linspace(0, 100, 100))
-'''
-#create an array of transmission & reflection coefficient values for each theta_i in theta_range
-reflectionCoefficient = np.array([reflectionAndTransmissionCoefficient(theta)[0] for theta in theta_range])
-transmissionCoefficient = np.array([reflectionAndTransmissionCoefficient(theta)[1] for theta in theta_range])
+theta_range = np.radians(np.linspace(0, 90, 1000))
 
-#Create an array of transmittance & reflectance values for each theta_i in theta range
-reflectance = np.array([reflectanceAndTransmittance(theta)[0] for theta in theta_range])
-transmittance = np.array([reflectanceAndTransmittance(theta)[1] for theta in theta_range])
-
-#Brewster's angle
-theta_brewster = np.degrees(np.arctan(n_m/n_g))
-
-#PLOT SETTINGS
-# Tick for x-axis and y-axis
-ticks_x = np.setdiff1d(np.append(np.arange(0, 90, 10),
-                       np.round([theta_brewster], 3)), [50, 60])
-ticks_y = np.arange(-0.4, 1, 0.2)
-'''
 #create interface matricies
-m12 = np.array([buildInterfaceMatrix(n_g, n_m, theta) for theta in theta_range])
-print(m12[0].shape)
-# Display the matrix
-fig, ax = plt.subplots()
-cax = ax.matshow(m12[0], cmap='viridis')
+# m12 -> p2 -> m23
+interface_results = [buildInterfaceMatrix_s(n_g, n_m, theta) for theta in theta_range]
+m12 = np.array([result[0] for result in interface_results])
+theta2 = np.array([result[1] for result in interface_results])
+p2 = np.array([buildPropagationMatrix(n_m, mthicc, theta, omega) for theta in theta2])
+m23 = np.array([buildInterfaceMatrix_s(n_m, n_w, theta)[0] for theta in theta2])
+mptot = np.array([m23[i] @ p2[i] @ m12[i] for i in range(len(m12))])
+print(mptot.shape)
+rptot = np.array([np.abs(m[1, 0] / m[1, 1])**2 for m in mptot])
+print(rptot.shape)
+print(np.isnan(rptot).any(), np.isinf(rptot).any())
 
-# Add color bar
-fig.colorbar(cax)
+interface_results_p = [buildInterfaceMatrix_p(n_g, n_m, theta) for theta in theta_range]
+m12_p = np.array([result[0] for result in interface_results_p])
+theta2_p = np.array([result[1] for result in interface_results_p])
+p2_p = np.array([buildPropagationMatrix(n_m, mthicc, theta, omega) for theta in theta2_p])
+m23_p = np.array([buildInterfaceMatrix_p(n_m, n_w, theta)[0] for theta in theta2_p])
+mptot_p = np.array([m23_p[i] @ p2_p[i] @ m12_p[i] for i in range(len(m12))])
+rptot_p = np.array([np.abs(m[1, 0] / m[1, 1])**2 for m in mptot_p])
+print(np.isnan(rptot_p).any(), np.isinf(rptot_p).any())
 
-# Annotate each cell with the numeric value
-for (i, j), val in np.ndenumerate(m12[0]):
-    ax.text(j, i, f'{val}', ha='center', va='center', color='white')
+plt.figure(figsize=(8, 6))
+plt.plot(np.degrees(theta_range), rptot, label='Reflectance')
+plt.plot(np.degrees(theta_range), rptot_p, label='Reflectance')
+plt.xlabel('Incident Angle (degrees)')
+plt.ylabel('Reflectance')
+plt.ylim(0, 2)
+plt.title('Reflectance vs Incident Angle')
+plt.grid(True)
+plt.legend()
 plt.show()
-'''
-Plot of Reflection and Transmission Coefficients
-'''
-
-
-"""
-
-
-figure, (graph_1, graph_2) = plt.subplots(1, 2, figsize=(12, 6))
-graph_1.plot(np.degrees(theta_range), reflectionCoefficient,
-             label=r'Reflection Coefficient $\frac{E_{0_R}}{E_{0_I}}$', linewidth=2, color='blue')
-graph_1.plot(np.degrees(theta_range), transmissionCoefficient,
-             label=r'Transmission Coefficient $\frac{E_{0_T}}{E_{0_I}}$', linewidth=2, color='orange')
-graph_1.set_xlabel(r'Angle of Incidence $\theta_I$')
-graph_1.set_ylabel('Reflection/Transmission Coefficients')
-graph_1.set_yticks(ticks=ticks_y)
-graph_1.set_title(r'''Reflection ($r=\frac{E_{0_R}}{E_{0_I}}$) and
-Transmission ($t=\frac{E_{0_T}}{E_{0_I}}$) Coefficients as a function of Angle of Incidence ($\theta_i$)''', pad=20)
-graph_1.axis([0, 90, -0.4, 1.0])
-graph_1.tick_params(top=True, right=True, direction="in", length=7, width=0.9)
-graph_1.legend(loc="upper right", bbox_to_anchor=(0.6, 0.8))
-
-
-'''
-Transmittance & Reflectance Plot
-'''
-graph_2.plot(np.degrees(theta_range), reflectance,
-             label=r'Reflectance $R$', linewidth=2, color='blue')
-graph_2.plot(np.degrees(theta_range), transmittance,
-             label=r'Transmittance $T$', linewidth=2, color='orange')
-graph_2.set_xlabel(r'Angle of Incidence $\theta_I$')
-graph_2.set_ylabel('Reflectance/Transmittance')
-graph_2.set_yticks(ticks=ticks_y)
-graph_2.set_title(
-    r'Reflectance and Transmittance as a function of Angle of Incidence ($\theta_i$)', pad=20)
-graph_2.axis([0, 90, -0.05, 1.05])
-graph_2.tick_params(top=True, right=True, direction="in", length=7, width=0.9)
-graph_2.legend(loc="upper right", bbox_to_anchor=(0.42, 0.9))
-
-# General Properties of Graph 1 & 2
-for i in range(2):
-    locals()[f"graph_{i+1}"].grid()
-    locals()[f"graph_{i+1}"].annotate(r"Brewster's Angle $\theta_B$",
-                                      xy=(np.degrees(np.arctan(n_m/n_g)), 0.0), xytext=(33, 0.2),
-                                      arrowprops={"arrowstyle": "-|>", "color": "black"})
-    locals()[f"graph_{i+1}"].set_xticks(ticks_x,
-                                        [r"${angle}^\circ$".format(angle=angle) for angle in ticks_x])
-    locals()[f"graph_{i+1}"].axhline(0.0,
-                                     linewidth=1, color='green', linestyle='--')
-    locals()[f"graph_{i+1}"].axvline(np.degrees(np.arctan(n_m/n_g)),
-                                     linewidth=1, color='green', linestyle='--')
-
-# Axis thickness
-for axis in ['top', 'bottom', 'left', 'right']:
-    graph_1.spines[axis].set_linewidth(0.9)
-    graph_2.spines[axis].set_linewidth(0.9)
-
-# Subplots settings
-plt.subplots_adjust(left=0.1,
-                    bottom=0.1,
-                    right=0.95,
-                    top=0.84,
-                    wspace=0.2,
-                    hspace=0.1)
-
-#plt.show()
-# Save plot to png file.
-figure.savefig("fresnel_equation_plot_python.png", bbox_inches='tight')
-
-
-"""
