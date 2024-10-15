@@ -113,6 +113,27 @@ def reflectance(mthicc, theta, n_g, n_w, Lamda, epsilon, omega):
             r = np.abs(mptot[1, 0] / mptot[1, 1])**2
             return r
 
+def reflectance_theta(mthicc, theta, n_g, n_w, Lamda, epsilon, omega):
+            #print(str(mthicc[0]))
+            mthicc = mthicc*1e-9
+            theta = theta[0]
+            #print(str(mthicc))
+            n_m = np.sqrt(epsilon)
+            m12, theta_t = buildInterfaceMatrix_p(n_g, n_m, theta)
+            m23, _ = buildInterfaceMatrix_p(n_m, n_w, theta_t)
+            p2 = buildPropagationMatrix(n_m, mthicc, theta_t, omega)
+            mptot = m23 @ p2 @ m12
+            r = np.abs(mptot[1, 0] / mptot[1, 1])**2
+            return r
+
+def find_zero_reflectance_angle(mthicc, n_g, n_w, Lamda, epsilon):
+    omega = 2 * np.pi * (c / Lamda)
+    result = minimize(lambda x: reflectance_theta(mthicc, x, n_g, n_w, Lamda, epsilon, omega), np.radians(40), 
+                bounds=[(np.radians(30), np.radians(80))],
+                method='L-BFGS-B',
+                options={'maxiter': 15000})
+    return result.x[0], result.fun
+
 def find_zero_reflectance_thickness_and_angle(n_g, n_w, Lamda, epsilon):
     omega = 2 * np.pi * (c / Lamda)
     result = OptimizeResult(fun=float('inf'))
@@ -125,6 +146,59 @@ def find_zero_reflectance_thickness_and_angle(n_g, n_w, Lamda, epsilon):
         if temp.fun < result.fun:
             result = temp
             minTheta = theta
-
-
     return result.x[0], minTheta, result.fun
+
+
+
+"""
+Create an medium class that holds n, theta, thickness, and other parameters
+create a function that takes in an array of objects in this class and calculates m_tot
+Create a function that takes an mtot matrix and returns the effective refractive index
+Create a function that takes in mtot and returns the reflectance.
+"""
+
+class Medium:
+    def __init__(self, name, t=0, n=None, epsilon_inf=None, omega_p=None, gamma=None):
+        self.name = name
+        self.t = t  # thickness
+        self.n = n  # refractive index (can be None for metals)
+        self.epsilon_inf = epsilon_inf  # high-frequency dielectric constant
+        self.omega_p = omega_p  # plasma frequency
+        self.gamma = gamma  # damping constant
+
+    def is_metal(self):
+        return self.n is None and all(param is not None for param in [self.epsilon_inf, self.omega_p, self.gamma])
+
+    def __str__(self):
+        if self.is_metal():
+            return f"Metal({self.name}, t={self.t}, epsilon_inf={self.epsilon_inf}, omega_p={self.omega_p}, gamma={self.gamma})"
+        else:
+            return f"Medium({self.name}, n={self.n}, t={self.t})"
+
+# Function to calculate n for metals using the Drude model
+def calculate_n_metal(medium, omega):
+    if not medium.is_metal():
+        raise ValueError("This medium is not a metal")
+    
+    epsilon_inf = medium.epsilon_inf
+    omega_p = medium.omega_p
+    gamma = medium.gamma
+    epsilon = drude_model(omega, epsilon_inf, omega_p, gamma)
+    return np.sqrt(epsilon)
+"""
+#Example usage:
+glass = Medium("Glass", n=1.711)
+water = Medium("Water", n=1.328)
+gold = Medium("Gold", t=45e-9, epsilon_inf=5.2, omega_p=9*1.602e-19/1.0545e-34, gamma=0.068*1.602e-19/1.0545e-34)
+
+print(glass)
+print(water)
+print(gold)
+
+#Calculate n for gold at a specific omega
+Lamda = 814e-9
+c = 299792458
+omega = 2 * np.pi * (c / Lamda)
+n_gold = calculate_n_metal(gold, omega)
+print(f"Refractive index of gold at $\lambda$={Lamda*1e9:.2f} nm: {n_gold}")
+"""

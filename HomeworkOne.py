@@ -30,20 +30,22 @@ matplotlib.rcParams.update(rc_fonts)
 """
 First, we determine refractive index of medium
 """
-n_g = 1.711 #Glass
+#n_g = 1.711 #Glass
+glass = ff.Medium("Glass", n=1.711)
+#water = ff.Medium("Water", n=1.328)
 #n_m = complex(0.185, 5.11) #metla 0.185
 #print (str(n_m))
 n_w = 1.328 # water
 Lamda = 814e-9 #wavelength
-mthicc = 45e-9 #metal THICCness
+mthicc = 47e-9 #metal THICCness
 c = 299792458  # meters per second
 omega = 2*np.pi*(c/Lamda)
 
 
 
 def update_plot(val):
-    global n_g, n_m, n_w, Lamda, mthicc, omega
-    n_g = s_n_g.val
+    global glass, n_m, n_w, Lamda, mthicc, omega
+    glass.n = s_n_g.val
     n_w = s_n_w.val
     Lamda = s_Lamda.val * 1e-9  # Convert nm to m
     mthicc = s_mthicc.val * 1e-9  # Convert nm to m
@@ -58,7 +60,7 @@ def update_plot(val):
     
     theta_range = np.radians(np.linspace(0, 90, 1000))
     
-    interface_results = [ff.buildInterfaceMatrix_s(n_g, n_m, theta) for theta in theta_range]
+    interface_results = [ff.buildInterfaceMatrix_s(glass.n, n_m, theta) for theta in theta_range]
     m12 = np.array([result[0] for result in interface_results])
     theta2 = np.array([result[1] for result in interface_results])
     p2 = np.array([ff.buildPropagationMatrix(n_m, mthicc, theta, omega) for theta in theta2])
@@ -66,7 +68,7 @@ def update_plot(val):
     mptot = np.array([m23[i] @ p2[i] @ m12[i] for i in range(len(m12))])
     rptot = np.array([np.abs(m[1, 0] / m[1, 1])**2 for m in mptot])
     
-    interface_results_p = [ff.buildInterfaceMatrix_p(n_g, n_m, theta) for theta in theta_range]
+    interface_results_p = [ff.buildInterfaceMatrix_p(glass.n, n_m, theta) for theta in theta_range]
     m12_p = np.array([result[0] for result in interface_results_p])
     theta2_p = np.array([result[1] for result in interface_results_p])
     p2_p = np.array([ff.buildPropagationMatrix(n_m, mthicc, theta, omega) for theta in theta2_p])
@@ -107,7 +109,7 @@ def find_best_thickness(event):
     gamma = s_gamma.val * 1.602e-19 / 1.0545e-34
     epsilon = ff.drude_model(omega, epsilon_inf, omega_p, gamma)
     
-    best_thickness, best_angle, min_reflectance = ff.find_zero_reflectance_thickness_and_angle(n_g, n_w, Lamda, epsilon)
+    best_thickness, best_angle, min_reflectance = ff.find_zero_reflectance_thickness_and_angle(glass.n, n_w, Lamda, epsilon)
     
     print(f"Best thickness: {best_thickness:.2f} nm")
     print(f"Best angle: {np.degrees(best_angle):.2f} degrees")
@@ -151,7 +153,7 @@ slider_ax_n_w = plt.axes([0.12, 0.11, 0.65, 0.03], facecolor=slider_color)
 slider_ax_Lamda = plt.axes([0.12, 0.06, 0.65, 0.03], facecolor=slider_color)
 slider_ax_mthicc = plt.axes([0.12, 0.01, 0.65, 0.03], facecolor=slider_color)
 
-s_n_g, tb_n_g = create_slider_with_textbox(slider_ax_n_g, 'n_g', 1.0, 2.5, n_g)
+s_n_g, tb_n_g = create_slider_with_textbox(slider_ax_n_g, 'n_g', 1.0, 2.5, glass.n)
 s_epsilon_inf, tb_epsilon_inf = create_slider_with_textbox(slider_ax_epsilon_inf, '$\epsilon_\infty$', 1, 10, 5.2)
 s_omega_p, tb_omega_p = create_slider_with_textbox(slider_ax_omega_p, '$\omega_p$ (eV)', 5, 15, 9)
 s_gamma, tb_gamma = create_slider_with_textbox(slider_ax_gamma, '$\gamma$ (eV)', 0.01, 0.1, 0.068)
