@@ -25,21 +25,19 @@ matplotlib.rcParams.update(rc_fonts)
 #Values
 glass = ff.Medium("Glass", n=1.711)
 gold = ff.Medium("Gold", t=47, epsilon_inf=5.2, omega_p=9, gamma=0.068)
-Lamda = 814e-9 #wavelength
+Lamda = 785e-9 #wavelength
 c = 299792458  # meters per second
-omega = 2*np.pi*(c/Lamda)
-n_gold = ff.calculate_n_metal(gold, omega)
-epsilon = n_gold**2
-n_w_range = np.linspace(1.3, 1.4, 100)  # Adjust range as needed
+omega = ff.omega(Lamda)
+gold.n = ff.calculate_n_metal(omega, gold)
+n_w_range = np.linspace(1.3, 1.4, 1000)  # Adjust range as needed
 theta_range = []
 """
 For all potential values of n water we must find the thetaSPR
 """
 # Calculate theta for different n_w values
-for n_w in n_w_range:
-    theta, _ = ff.find_zero_reflectance_angle(gold.t, glass.n, n_w, Lamda, epsilon)
-    print(str(np.degrees(theta)))
-    theta_range.append(np.degrees(theta))  # Convert to degrees
+theta_range, r = ff.find_zero_reflectance_n_w_and_angle(gold.t, glass.n, gold.n, omega)
+for theta in theta_range:
+    print(str(theta))
 
 # Calculate the slope (RI sensitivity)
 slope, _ = np.polyfit(n_w_range, theta_range, 1)
