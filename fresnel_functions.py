@@ -197,6 +197,13 @@ def omega(Lamda):
     omega = 2*np.pi*(c/Lamda)
     return omega
 
+# Function to calculate SPP dispersion
+def k_spp(omega, metal, dielectric):
+    epsilon_m = drude_model(omega, metal)
+    epsilon_d = dielectric.n**2
+    return (omega/c) * np.sqrt((epsilon_m * epsilon_d) / (epsilon_m + epsilon_d))
+
+
 def drude_model(omega, metalMed):
     """
     Calculate the complex dielectric function using the Drude model.
