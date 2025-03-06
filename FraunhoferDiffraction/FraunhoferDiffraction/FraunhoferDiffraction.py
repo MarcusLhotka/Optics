@@ -1,6 +1,6 @@
 """
 Fraunhofer Diffraction for Square Aperture
-asda
+
 Marcus Lhotka
 EE 5621 Physical Optics
 Homework Assignment 5
@@ -9,88 +9,83 @@ Homework Assignment 5
 import numpy as np
 import numpy.fft as ft
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider, TextBox
-from matplotlib.widgets import Button
-import matplotlib
 
-wLength = 1e-3  # 1 micrometer in millimeters
-d = 1e6  # 1 km in millimeters
-lambdaD = wLength*d
+# Parameters
+wavelength = 1e-6  # 1 micrometer (m)
+aperture_width = 1e-3  # 1 mm (m)
+propagation_distance = 1000  # 1 km (m)
 
-# Create a 1024x1024 array filled with zeros
-realSpace = np.zeros((1080, 1080))
-# Calculate the width of the central lines
-linewidth = 1080 // 9  # This ensures a ratio of 8:1 zeros per one
-# Set the size of the central aperture
-realSpace[540-linewidth//2:540+linewidth//2, 540-linewidth//2:540+linewidth//2] = 1
+# Array
+N = 1024  # Array size
+padding_ratio = 8  # 8:1
 
+# Real Space
+array_size = aperture_width * padding_ratio
+dx = array_size / N
+realSpace = np.zeros((N, N))
+linewidth = (N // padding_ratio) # Width of the aperture
+
+realSpace[N//2 - linewidth//2:N//2 + linewidth//2,
+          N//2 - linewidth//2:N//2 + linewidth//2] = 1
+
+# Frequency Space
 freqSpace = ft.fftshift(ft.fft2(realSpace))
-absFreqSpace = np.abs(freqSpace)**2
+absFreqSpace = ((np.abs(freqSpace))**(.25))
 absFreqSpace = absFreqSpace / np.max(absFreqSpace)
 
-
-#1080/9=120 pixels per section. Lens extends for 2 sections so total pixels are 227.55.
-#pixels per mm conversion
-pxTo_mm = 1 / 120
-extent_mm = [-540*pxTo_mm, 540 * pxTo_mm, 540 * pxTo_mm, -540*pxTo_mm]
-# Calculate spatial frequencies
-fx = ft.fftshift(ft.fftfreq(1080, d=1))
+# Calculate Spatial Frequencies
+dfx = 1 / array_size  # Frequency increment
+fx = np.linspace(-N/2 * dfx, (N/2 - 1) * dfx, N)
 fy = fx.copy()
-#extentInvs_mm= [fx[0], fx[-1], fy[0], fy[-1]]
-#Convert into the new spacial domain
-extentInvs_mm= [fx[0]*lambdaD, fx[-1]*lambdaD, fy[0]*lambdaD, fy[-1]*lambdaD]
 
+# Fraunhofer Substitution: x' = lambda * z * fx
+x_prime = wavelength * propagation_distance * fx
+y_prime = wavelength * propagation_distance * fy
 
-xPrimeLim=50
-yPrimeLim=50
+# Fraunhofer Space for graphing
+extent = [x_prime[0], x_prime[-1], y_prime[0], y_prime[-1]]
 
-# Create a new figure
-plt.figure(figsize=(10, 10))
-# Plot the lens
-plt.imshow(realSpace, cmap='binary', extent=extent_mm)
-# Invert the y-axis to compensate for Array direction
-plt.gca().invert_yaxis()
-# Add a colorbar
-plt.colorbar()
-# Add title and labels
-plt.title('1mm lens')
-plt.xlabel('X-axis')
-plt.ylabel('Y-axis')
+# Create x and y axes for graphing real space
+x = np.linspace(-array_size/2, array_size/2, N)
+y = x.copy()
+#Extent
+extent_mm = [x[0]*1e3, x[-1]*1e3, y[0]*1e3, y[-1]*1e3]
 
-
-# Plot 1D slice
-plt.figure(figsize=(10, 6))
-plt.plot(fx, absFreqSpace[:, 540])
-plt.title('1D Slice of Fraunhofer Diffraction Pattern')
-plt.xlabel('X Prime (mm)')
-plt.ylabel('Intensity')
-
-
-# Plot 1D slice
-plt.figure(figsize=(10, 6))
-plt.plot(fx, absFreqSpace[540, :])
-plt.title('1D Slice of Fraunhofer Diffraction Pattern')
-plt.xlabel('Y Prime (mm)')
-plt.ylabel('Intensity')
-
-
-# Create a new figure
-plt.figure(figsize=(10, 10))
-
-# Plot the diffraction
-plt.imshow(absFreqSpace, cmap='binary', extent=extentInvs_mm)
-# Invert the y-axis to compensate for Array direction
-plt.gca().invert_yaxis()
-plt.xlim(-xPrimeLim,xPrimeLim)
-plt.ylim(-yPrimeLim,yPrimeLim)
-# Add a colorbar
+# Create a new figure to show the lens
+plt.figure(figsize=(8, 8))
+# Plot the lens (aperture)
+plt.imshow(realSpace, cmap='gray', extent=extent_mm,)  # Use 'extent' to scale axes
+plt.gca().invert_yaxis() #Invert y axis because imshow defaults to y axis increasing downwards
+plt.xlim(-2,2)
+plt.ylim(-2,2)
+plt.title('Square Aperture')
+plt.xlabel('x (mm)')
+plt.ylabel('y (mm)')
 plt.colorbar()
 
-# Add title and labels
-plt.title('1mm lens')
-plt.xlabel('Xd-axis')
-plt.ylabel('Yd-axis')
+# 2D Plot
+plt.figure(figsize=(8, 8))
+plt.imshow(absFreqSpace, extent=extent, cmap='gray')
+plt.xlabel("x' (m)")
+plt.ylabel("y' (m)")
+#plt.xlim(-20,20)
+#plt.ylim(-20,20)
+plt.title("Fraunhofer Diffraction Pattern")
+plt.colorbar(label="Normalized 4th Root of Intensity")
 
-# Show the plot
+# 1D X Slice
+plt.figure(figsize=(8, 6))
+plt.plot(x_prime, absFreqSpace[N//2, :])  # Slice through the center
+plt.xlabel("y' (m)")
+plt.ylabel("Normalized 4th Root of Intensity")
+plt.title("1D Slice (x'=0) Fraunhofer Diffraction Pattern")
+plt.grid(True)
+
+# 1D Y Slice
+plt.figure(figsize=(8, 6))
+plt.plot(y_prime, absFreqSpace[:, N//2])  # Slice through the center
+plt.xlabel("x' (m)")
+plt.ylabel("Normalized 4th Root of Intensity")
+plt.title("1D Slice of (y'=0) Fraunhofer Diffraction Pattern")
+plt.grid(True)
 plt.show()
-
