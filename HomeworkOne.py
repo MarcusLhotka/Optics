@@ -61,7 +61,8 @@ def update_plot(val):
 
     theta_range = np.radians(np.linspace(0, 90, 1000))
 
-    #Find s-polarization reflectance
+    #Find s-polarization reflectance with protein
+    """
     interface_results12 = [ff.buildInterfaceMatrix_s(glass.n, gold.n, theta) for theta in theta_range]
     m12 = np.array([result[0] for result in interface_results12])
     theta2 = np.array([result[1] for result in interface_results12])
@@ -76,8 +77,21 @@ def update_plot(val):
     rptot_magnitude = np.abs(rptot_complex)
     rtot = rptot_magnitude**2
     rptot_phase = np.angle(rptot_complex, deg=True)
+    """
+    interface_results12 = [ff.buildInterfaceMatrix_s(glass.n, gold.n, theta) for theta in theta_range]
+    m12 = np.array([result[0] for result in interface_results12])
+    theta2 = np.array([result[1] for result in interface_results12])
+    p2 = np.array([ff.buildPropagationMatrix(gold, theta, omega) for theta in theta2])
+    interface_results23 = [ff.buildInterfaceMatrix_s(gold.n, water.n, theta) for theta in theta2]
+    m23 = np.array([result[0] for result in interface_results23])
+    mtot = np.array([m23[i] @ p2[i] @ m12[i] for i in range(len(m12))])
+    rptot_complex = np.array([m[1, 0] / m[1, 1] for m in mtot])
+    rptot_magnitude = np.abs(rptot_complex)
+    rtot = rptot_magnitude**2
+    rptot_phase = np.angle(rptot_complex, deg=True)
 
-    #find p-polarization reflectance
+    #find p-polarization reflectance with protein
+    """
     interface_results12_p = [ff.buildInterfaceMatrix_p(glass.n, gold.n, theta) for theta in theta_range]
     m12_p = np.array([result[0] for result in interface_results12_p])
     theta2_p = np.array([result[1] for result in interface_results12_p])
@@ -88,6 +102,18 @@ def update_plot(val):
     p3_p = np.array([ff.buildPropagationMatrix(protein, theta, omega) for theta in theta3_p])
     m34_p = np.array([ff.buildInterfaceMatrix_p(protein.n, water.n, theta)[0] for theta in theta3_p])
     mtot_p = np.array([m34_p[i] @ p3_p[i] @ m23_p[i] @ p2_p[i] @ m12_p[i] for i in range(len(m12))])
+    rptot_p_complex = np.array([m[1, 0] / m[1, 1] for m in mtot_p])
+    rptot_p_magnitude = np.abs(rptot_p_complex)
+    rtot_p = rptot_p_magnitude**2
+    rptot_p_phase = np.angle(rptot_p_complex, deg=True)
+    """
+    interface_results12_p = [ff.buildInterfaceMatrix_p(glass.n, gold.n, theta) for theta in theta_range]
+    m12_p = np.array([result[0] for result in interface_results12_p])
+    theta2_p = np.array([result[1] for result in interface_results12_p])
+    p2_p = np.array([ff.buildPropagationMatrix(gold, theta, omega) for theta in theta2_p])
+    interface_results23_p = [ff.buildInterfaceMatrix_p(gold.n, water.n, theta) for theta in theta2_p]
+    m23_p = np.array([result[0] for result in interface_results23_p])
+    mtot_p = np.array([m23_p[i] @ p2_p[i] @ m12_p[i] for i in range(len(m12))])
     rptot_p_complex = np.array([m[1, 0] / m[1, 1] for m in mtot_p])
     rptot_p_magnitude = np.abs(rptot_p_complex)
     rtot_p = rptot_p_magnitude**2
