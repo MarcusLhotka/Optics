@@ -1,0 +1,44 @@
+"""
+# Create a new figure to show the lens
+plt.figure(figsize=(8, 8))
+# Plot the lens (aperture)
+plt.imshow(realSpace, cmap='gray', extent=extent_mm,)  # Use 'extent' to scale axes
+plt.gca().invert_yaxis() #Invert y axis because imshow defaults to y axis increasing downwards
+plt.xlim(-2,2)
+plt.ylim(-2,2)
+plt.title('Square Aperture')
+plt.xlabel('x (mm)')
+plt.ylabel('y (mm)')
+plt.colorbar()
+
+# Create a new figure to show the lens
+plt.figure(figsize=(8, 8))
+# Plot the lens (aperture)
+plt.imshow(testReal, cmap='gray', extent=extent_mm,)  # Use 'extent' to scale axes
+plt.gca().invert_yaxis() #Invert y axis because imshow defaults to y axis increasing downwards
+plt.xlim(-2,2)
+plt.ylim(-2,2)
+plt.title('Square Aperture After Double Transform')
+plt.xlabel('x (mm)')
+plt.ylabel('y (mm)')
+plt.colorbar()
+"""
+
+"""
+# 1D X Slice Fourier form of Fraunhofer
+plt.figure(figsize=(8, 6))
+plt.plot(x_prime, absFreqSpace[arraysize//2, :])  # Slice through the center
+plt.xlabel("y' (m)")
+plt.ylabel("Normalized 4th Root of Intensity")
+plt.title("1D Slice (x'=0) Fraunhofer Diffraction Pattern")
+plt.grid(True)
+"""
+"""
+# 1D Y Slice
+plt.figure(figsize=(8, 6))
+plt.plot(y_prime, absFreqSpace[:, arraysize//2])  # Slice through the center
+plt.xlabel("x' (m)")
+plt.ylabel("Normalized 4th Root of Intensity")
+plt.title("1D Slice of (y'=0) Fraunhofer Diffraction Pattern")
+plt.grid(True)
+"""
